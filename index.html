@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>천명(天命) - AI 사주풀이 & 오늘의 운세</title>
+  <meta name="description" content="명리학 기반 사주팔자 풀이와 띠별 오늘의 운세를 확인하세요. 당신의 타고난 기운과 운명의 흐름을 읽어드립니다.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <!-- Ambient Background -->
+  <div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="stars" id="stars"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo" onclick="showSection('hero')">
+        <span class="logo-icon">命</span>
+        <span class="logo-text">천명</span>
+      </a>
+      <div class="nav-links">
+        <a href="#" class="nav-link active" data-section="saju" onclick="showSection('saju')">사주풀이</a>
+        <a href="#" class="nav-link" data-section="fortune" onclick="showSection('fortune')">오늘의 운세</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="section hero-section active" id="hero-section">
+    <div class="hero-content">
+      <div class="hero-badge">명리학 기반 AI 사주풀이</div>
+      <h1 class="hero-title">
+        <span class="title-line">당신의</span>
+        <span class="title-line accent">타고난 운명</span>
+        <span class="title-line">을 읽어드립니다</span>
+      </h1>
+      <p class="hero-desc">
+        수천 년 동양 철학의 정수, 명리학(命理學)으로<br>
+        당신만의 사주팔자를 깊이 있게 풀어드립니다.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary btn-glow" onclick="showSection('saju')">
+          <span>사주풀이 시작하기</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <button class="btn btn-ghost" onclick="showSection('fortune')">
+          <span>오늘의 운세 보기</span>
+        </button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="bagua-container">
+        <div class="bagua-ring bagua-ring-outer">
+          <span class="bagua-char" style="--i:0">乾</span>
+          <span class="bagua-char" style="--i:1">兌</span>
+          <span class="bagua-char" style="--i:2">離</span>
+          <span class="bagua-char" style="--i:3">震</span>
+          <span class="bagua-char" style="--i:4">巽</span>
+          <span class="bagua-char" style="--i:5">坎</span>
+          <span class="bagua-char" style="--i:6">艮</span>
+          <span class="bagua-char" style="--i:7">坤</span>
+        </div>
+        <div class="bagua-ring bagua-ring-inner">
+          <span class="element-icon" style="--i:0" data-element="wood">木</span>
+          <span class="element-icon" style="--i:1" data-element="fire">火</span>
+          <span class="element-icon" style="--i:2" data-element="earth">土</span>
+          <span class="element-icon" style="--i:3" data-element="metal">金</span>
+          <span class="element-icon" style="--i:4" data-element="water">水</span>
+        </div>
+        <div class="taiji">
+          <div class="taiji-inner">☯</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Saju Section -->
+  <section class="section saju-section" id="saju-section">
+    <!-- Input Form -->
+    <div class="saju-form-container" id="saju-form-container">
+      <div class="section-header">
+        <span class="section-badge">四柱八字</span>
+        <h2 class="section-title">사주풀이</h2>
+        <p class="section-desc">태어난 정보를 입력하시면, 명리학에 기반한 깊이 있는 사주 해석을 제공합니다.</p>
+      </div>
+
+      <form class="saju-form" id="saju-form" onsubmit="return handleSajuSubmit(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="name">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              이름
+            </label>
+            <input type="text" id="name" class="form-input" placeholder="이름을 입력하세요" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="birthdate">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              생년월일 (양력)
+            </label>
+            <input type="date" id="birthdate" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="birthtime">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              태어난 시간
+            </label>
+            <select id="birthtime" class="form-input form-select" required>
+              <option value="" disabled selected>시간을 선택하세요</option>
+              <option value="23">자시 (23:00~01:00)</option>
+              <option value="1">축시 (01:00~03:00)</option>
+              <option value="3">인시 (03:00~05:00)</option>
+              <option value="5">묘시 (05:00~07:00)</option>
+              <option value="7">진시 (07:00~09:00)</option>
+              <option value="9">사시 (09:00~11:00)</option>
+              <option value="11">오시 (11:00~13:00)</option>
+              <option value="13">미시 (13:00~15:00)</option>
+              <option value="15">신시 (15:00~17:00)</option>
+              <option value="17">유시 (17:00~19:00)</option>
+              <option value="19">술시 (19:00~21:00)</option>
+              <option value="21">해시 (21:00~23:00)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+              성별
+            </label>
+            <div class="gender-selector">
+              <input type="radio" name="gender" id="gender-male" value="male" required>
+              <label for="gender-male" class="gender-option">
+                <span class="gender-icon">♂</span>
+                <span>남성</span>
+              </label>
+              <input type="radio" name="gender" id="gender-female" value="female">
+              <label for="gender-female" class="gender-option">
+                <span class="gender-icon">♀</span>
+                <span>여성</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-submit">
+          <span class="btn-text">사주 풀이하기</span>
+          <span class="btn-loader" id="btn-loader">
+            <span class="loader-dot"></span>
+            <span class="loader-dot"></span>
+            <span class="loader-dot"></span>
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Result Area -->
+    <div class="saju-result-container hidden" id="saju-result">
+      <button class="back-btn" onclick="showSajuForm()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        다시 풀이하기
+      </button>
+
+      <div class="result-header">
+        <h2 class="result-name" id="result-name"></h2>
+        <p class="result-birth" id="result-birth"></p>
+      </div>
+
+      <!-- 사주 팔자 표 -->
+      <div class="saju-table-wrapper">
+        <h3 class="result-section-title">
+          <span class="title-deco">✦</span> 사주팔자 (四柱八字) <span class="title-deco">✦</span>
+        </h3>
+        <div class="saju-table" id="saju-table"></div>
+      </div>
+
+      <!-- 오행 분석 -->
+      <div class="analysis-card" id="ohaeng-card">
+        <h3 class="card-title">
+          <span class="card-icon">🌊</span> 오행(五行) 분석
+        </h3>
+        <div class="ohaeng-chart" id="ohaeng-chart"></div>
+        <div class="ohaeng-desc" id="ohaeng-desc"></div>
+      </div>
+
+      <!-- 심층 비유적 사주 해석 (아코디언 구조) -->
+      <div class="interpretation-accordion-wrapper">
+        <h3 class="result-section-title">
+          <span class="title-deco">✦</span> 명리학 심층 풀이 (深層 解釋) <span class="title-deco">✦</span>
+        </h3>
+        <p class="accordion-intro-text">각 항목을 클릭하시면 1,000자 이상의 비유적 심층 사주 풀이를 확인하실 수 있습니다.</p>
+        <div class="accordion-list" id="interpretation-accordion"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fortune Section (오늘의 운세) -->
+  <section class="section fortune-section" id="fortune-section">
+    <div class="section-header">
+      <span class="section-badge">今日運勢</span>
+      <h2 class="section-title">오늘의 운세</h2>
+      <p class="section-desc" id="fortune-date"></p>
+    </div>
+
+    <div class="zodiac-grid" id="zodiac-grid"></div>
+
+    <!-- 운세 모달 -->
+    <div class="modal-overlay" id="fortune-modal">
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeFortuneModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <span class="logo-icon">命</span>
+        <span>천명(天命)</span>
+      </div>
+      <p class="footer-text">본 사주풀이는 전통 명리학에 기반한 재미 목적의 해석이며, 전문 상담을 대체하지 않습니다.</p>
+      <p class="footer-copyright">© 2026 천명. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="saju-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
