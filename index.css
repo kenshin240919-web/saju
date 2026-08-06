@@ -1509,3 +1509,30 @@ input[type="radio"]:checked + .gender-option {
   border-radius: 4px;
   font-weight: 500;
 }
+
+/* --- Google AdSense Placements --- */
+.ad-container {
+  width: 100%;
+  margin: 24px 0;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ad-container .adsbygoogle {
+  display: block !important;
+  min-height: 90px;
+  width: 100%;
+}
+
+.ad-infeed {
+  margin: 16px 0;
+  border-color: rgba(212, 168, 83, 0.25);
+  background: rgba(20, 20, 45, 0.85);
+}

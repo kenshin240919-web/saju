@@ -164,9 +164,33 @@ function renderInterpretationAccordion(interpretationSections) {
         </div>
       </div>
     `;
+
+    // [광고] 섹션 3(인연)과 섹션 4(재물) 사이에 최고 클릭률 인피드 광고 삽입
+    if (idx === 2) {
+      html += `
+        <div class="ad-container ad-infeed">
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-3087515825675332"
+               data-ad-slot="6639512269"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+        </div>
+      `;
+    }
   });
 
   container.innerHTML = html;
+
+  // Push AdSense for dynamic ad slots
+  try {
+    const adElements = container.querySelectorAll('.adsbygoogle');
+    adElements.forEach(() => {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    });
+  } catch (err) {
+    console.log('AdSense init notice:', err);
+  }
 }
 
 function toggleAccordion(header) {
