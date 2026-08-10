@@ -6,6 +6,8 @@
   <meta name="naver-site-verification" content="ab0e54c17c391c1e4d7d077a59ea11768720af95" />
   <meta name="google-site-verification" content="aZik3C_fR6Jo-S2nbhdS1a-6dO8aeNqbhSJu3PiyVcc" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3087515825675332" crossorigin="anonymous"></script>
+  <!-- Portone (구 아임포트) 결제 SDK -->
+  <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
   <title>천명(天命) - AI 사주풀이 & 오늘의 운세</title>
   <meta name="description" content="명리학 기반 사주팔자 풀이와 띠별 오늘의 운세를 확인하세요. 당신의 타고난 기운과 운명의 흐름을 읽어드립니다.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -243,13 +245,62 @@
         </script>
       </div>
 
-      <!-- 심층 비유적 사주 해석 (아코디언 구조) -->
-      <div class="interpretation-accordion-wrapper">
+      <!-- 심층 비유적 사주 해석 (유료 잠금/해금 아코디언 구조) -->
+      <div class="interpretation-accordion-wrapper locked" id="accordion-wrapper">
         <h3 class="result-section-title">
           <span class="title-deco">✦</span> 명리학 심층 풀이 (深層 解釋) <span class="title-deco">✦</span>
+          <span class="lock-status-badge" id="lock-status-badge">🔒 결제 필요</span>
         </h3>
-        <p class="accordion-intro-text">각 항목을 클릭하시면 1,000자 이상의 비유적 심층 사주 풀이를 확인하실 수 있습니다.</p>
-        <div class="accordion-list" id="interpretation-accordion"></div>
+        <p class="accordion-intro-text">사주팔자 4주 및 오행 분석은 무료로 제공되며, 7대 핵심 분야 프리미엄 정통 사주 리포트는 1,000원 결제 완료 시 즉시 열람하실 수 있습니다.</p>
+
+        <!-- 결제 완료 상태 알림 바너 (결제 성공 시 노출) -->
+        <div class="unlocked-banner" id="unlocked-banner" style="display: none;">
+          <span class="banner-icon">✨</span>
+          <div class="banner-text">
+            <strong>1,000원 결제가 완료되었습니다!</strong>
+            <span>타고난 본질부터 대운의 흐름까지, 7개 핵심 분야 정통 사주 리포트 전체를 열람하실 수 있습니다.</span>
+          </div>
+        </div>
+
+        <div class="accordion-container-relative">
+          <div class="accordion-list" id="interpretation-accordion"></div>
+
+          <!-- 유료 페이월 잠금 오버레이 Box (미결제 시 노출) -->
+          <div class="paywall-overlay" id="paywall-overlay">
+            <div class="paywall-card">
+              <div class="paywall-badge">PREMIUM REPORT</div>
+              <div class="paywall-lock-icon">🔒</div>
+              <h4 class="paywall-title">당신의 타고난 운명과 2026년 대운 리포트가 잠겨있습니다</h4>
+              <p class="paywall-desc">
+                일간의 본질, 부와 성공의 길, 숨겨진 천부적 재능, 인생의 아킬레스건까지 단 1,000원으로 7대 핵심 분야 프리미엄 정통 사주 리포트를 확인해 보세요!
+              </p>
+
+              <div class="paywall-price-container">
+                <span class="original-price">5,000원</span>
+                <span class="sale-price">1,000원</span>
+                <span class="discount-badge">80% OFF</span>
+              </div>
+
+              <div class="paywall-methods-title">1,000원 결제 수단 선택</div>
+
+              <div class="paywall-method-grid">
+                <button class="pay-method-btn pay-card-btn" onclick="openRemittanceModal('card')">
+                  <span class="method-icon">💳</span>
+                  <span>신용/체크카드 결제</span>
+                </button>
+                <button class="pay-method-btn pay-bank-btn" onclick="openRemittanceModal('bank')">
+                  <span class="method-icon">🏦</span>
+                  <span>간편 계좌이체</span>
+                </button>
+              </div>
+
+              <div class="paywall-guarantee">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>안전한 비사업자 결제대행 및 간편 송금 시스템 지원</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- [광고 4] 사주 해설 최하단 - 7개 해설을 모두 읽은 사용자가 행동(클릭)하는 전환 포인트 -->
@@ -295,16 +346,6 @@
            (adsbygoogle = window.adsbygoogle || []).push({});
       </script>
     </div>
-
-    <!-- 운세 모달 -->
-    <div class="modal-overlay" id="fortune-modal">
-      <div class="modal-content">
-        <button class="modal-close" onclick="closeFortuneModal()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <div class="modal-body" id="modal-body"></div>
-      </div>
-    </div>
   </section>
 
   <!-- Footer -->
@@ -318,6 +359,176 @@
       <p class="footer-copyright">© 2026 천명. All rights reserved.</p>
     </div>
   </footer>
+
+  <!-- 루트 레벨 운세 모달 -->
+  <div class="modal-overlay" id="fortune-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeFortuneModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- 루트 레벨 통합 결제 안내 모달 (카드/간편결제 & 간편계좌이체) -->
+  <div class="modal-overlay" id="remittance-modal">
+    <div class="modal-content remittance-modal-content">
+      <button class="modal-close" onclick="closeRemittanceModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="remittance-modal-body">
+        <div class="remittance-header">
+          <span class="remittance-icon">💳</span>
+          <h3>1,000원 정통 사주 리포트 결제</h3>
+          <p>페이앱(PayApp) 비사업자 신용카드, 휴대폰 소액결제, 네이버페이, 애플페이, 페이코 및 계좌이체를 지원합니다.</p>
+        </div>
+
+        <!-- 결제 수단 탭 버튼 -->
+        <div class="pay-tab-nav">
+          <button class="pay-tab-btn active" id="tab-btn-card" onclick="switchPayTab('card')">💳 카드 & 간편결제</button>
+          <button class="pay-tab-btn" id="tab-btn-bank" onclick="switchPayTab('bank')">🏦 간편 계좌이체</button>
+        </div>
+
+        <!-- 탭 1: 카드 & 간편결제 (비사업자 PG 설정 수단) -->
+        <div class="pay-tab-content active" id="pay-tab-content-card">
+          <p class="pay-tab-desc">페이앱 비사업자 결제대행 시스템으로 안전하게 1,000원이 결제됩니다.</p>
+          <div class="card-pay-grid">
+            <button class="card-pay-btn btn-card-default" onclick="requestSajuPayment('card')">
+              <span class="pay-icon">💳</span>
+              <div class="pay-btn-info">
+                <strong>신용 / 체크카드 결제</strong>
+                <span>모든 국내 신용/체크카드</span>
+              </div>
+            </button>
+            <button class="card-pay-btn btn-mobilepay" onclick="requestSajuPayment('mobile')">
+              <span class="pay-icon">📱</span>
+              <div class="pay-btn-info">
+                <strong>휴대폰 소액결제</strong>
+                <span>통신사 합산 결제</span>
+              </div>
+            </button>
+            <button class="card-pay-btn btn-naverpay" onclick="requestSajuPayment('naverpay')">
+              <span class="pay-icon">🟢</span>
+              <div class="pay-btn-info">
+                <strong>네이버페이 결제</strong>
+                <span>네이버페이 1,000원 결제</span>
+              </div>
+            </button>
+            <button class="card-pay-btn btn-applepay" onclick="requestSajuPayment('applepay')">
+              <span class="pay-icon">🍎</span>
+              <div class="pay-btn-info">
+                <strong>애플페이 (Apple Pay)</strong>
+                <span>아이폰/맥 간편 결제</span>
+              </div>
+            </button>
+            <button class="card-pay-btn btn-payco" onclick="requestSajuPayment('payco')">
+              <span class="pay-icon">🔴</span>
+              <div class="pay-btn-info">
+                <strong>PAYCO 페이코 결제</strong>
+                <span>페이코 포인트/카드</span>
+              </div>
+            </button>
+            <button class="card-pay-btn btn-directaccount" onclick="switchPayTab('bank')">
+              <span class="pay-icon">🏦</span>
+              <div class="pay-btn-info">
+                <strong>계좌이체 / 내통장결제</strong>
+                <span>실시간 계좌이체 결제</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 탭 2: 간편 계좌이체 -->
+        <div class="pay-tab-content" id="pay-tab-content-bank" style="display: none;">
+          <div class="account-card">
+            <div class="account-row">
+              <span class="account-label">🔵 토스뱅크 계좌</span>
+              <div class="account-val-box">
+                <span class="account-val">토스 1000-1849-3961 (이봉근)</span>
+                <button class="btn-copy" onclick="copySpecificAccount('toss')">복사 + 앱열기</button>
+              </div>
+            </div>
+            <div class="account-row">
+              <span class="account-label">🟡 카카오뱅크 계좌</span>
+              <div class="account-val-box">
+                <span class="account-val">카뱅 3333-04-8755824 (이봉근)</span>
+                <button class="btn-copy" onclick="copySpecificAccount('kakao')">복사 + 앱열기</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="depositor-input-group">
+            <label for="depositor-name-input" class="depositor-label">👤 송금하신 입금자명</label>
+            <input type="text" id="depositor-name-input" class="depositor-input" placeholder="예: 홍길동 (실제 입금자 성함)" />
+            <p class="depositor-help-text">※ 1,000원 입금 후 입금자 성함을 입력하셔야 입금 내역 확인이 완료됩니다.</p>
+          </div>
+
+          <div class="checking-status" id="checking-status" style="display: none;">
+            <div class="checking-spinner"></div>
+            <span>실시간 은행 입금 내역 확인 중...</span>
+          </div>
+
+          <button class="btn btn-primary btn-glow btn-block" onclick="confirmRemittanceUnlock()">
+            <span>💳 1,000원 입금 완료 및 결제 확인 요청</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 비사업자 카드/간편결제 PG 모의 결제창 팝업 -->
+  <div class="modal-overlay" id="card-pg-modal">
+    <div class="modal-content card-pg-modal-content">
+      <button class="modal-close" onclick="closeCardPgModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="pg-modal-header">
+        <span class="pg-badge">SECURE PG 1,000원 결제</span>
+        <h3 id="pg-modal-title">💳 신용/체크카드 결제</h3>
+        <p class="pg-merchant-info">가맹점: <strong>천명(天命) 사주팔자 심층리포트</strong> | 결제금액: <strong class="pg-amount">1,000원</strong></p>
+      </div>
+
+      <!-- 카드사 선택 -->
+      <div class="pg-card-select-group">
+        <label class="pg-label">카드사 선택</label>
+        <div class="card-company-grid">
+          <button class="card-company-btn active" onclick="selectCardCompany(this)">KB국민</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">신한카드</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">삼성카드</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">현대카드</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">롯데카드</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">하나카드</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">BC카드</button>
+          <button class="card-company-btn" onclick="selectCardCompany(this)">NH농협</button>
+        </div>
+      </div>
+
+      <!-- 카드 정보 입력 -->
+      <div class="pg-input-group">
+        <label class="pg-label">카드 번호</label>
+        <input type="text" id="pg-card-number" class="pg-input" placeholder="1234 - **** - **** - 5678" maxlength="19" value="9410 - **** - **** - 1004" />
+      </div>
+
+      <div class="pg-row-group">
+        <div class="pg-input-group flex-1">
+          <label class="pg-label">유효기간 (MM/YY)</label>
+          <input type="text" id="pg-card-exp" class="pg-input" placeholder="MM/YY" value="12/28" maxlength="5" />
+        </div>
+        <div class="pg-input-group flex-1">
+          <label class="pg-label">비밀번호 앞 2자리</label>
+          <input type="password" id="pg-card-pw" class="pg-input" placeholder="**" value="12" maxlength="2" />
+        </div>
+      </div>
+
+      <div class="pg-notice-box">
+        🔒 비사업자 결제대행 보안 암호화 결제가 적용되어 안전하게 1,000원이 결제됩니다.
+      </div>
+
+      <button class="btn btn-primary btn-glow btn-block pg-submit-btn" id="pg-submit-btn" onclick="processCardPgPayment()">
+        <span>💳 1,000원 안전 결제 승인하기</span>
+      </button>
+    </div>
+  </div>
 
   <script src="saju-engine.js"></script>
   <script src="app.js"></script>

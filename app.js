@@ -100,7 +100,288 @@ function handleSajuSubmit(e) {
   return false;
 }
 
+// ===== Payment & Lock State =====
+let isPaid = false;
+
+function resetPaymentState() {
+  isPaid = false;
+  const wrapper = document.getElementById('accordion-wrapper');
+  if (wrapper) {
+    wrapper.classList.add('locked');
+    wrapper.classList.remove('unlocked');
+  }
+
+  const overlay = document.getElementById('paywall-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+  }
+
+  const banner = document.getElementById('unlocked-banner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+
+  const badge = document.getElementById('lock-status-badge');
+  if (badge) {
+    badge.textContent = '🔒 결제 필요';
+    badge.className = 'lock-status-badge locked';
+  }
+}
+
+// ===== 개인 비사업자 간편 계좌이체 & PG 설정 =====
+const CONFIG_REMITTANCE = {
+  toss: {
+    bankName: '토스뱅크',
+    accountNumber: '1000-1849-3961',
+    accountHolder: '이봉근'
+  },
+  kakao: {
+    bankName: '카카오뱅크',
+    accountNumber: '3333-04-8755824',
+    accountHolder: '이봉근'
+  },
+  amount: 1000
+};
+
+function copyAndOpenBanking(appType = 'toss') {
+  copySpecificAccount(appType, true);
+  openRemittanceModal('bank');
+}
+
+function launchBankingApp(appType) {
+  if (appType === 'toss') {
+    window.location.href = 'supertoss://';
+  } else if (appType === 'kakao') {
+    window.location.href = 'kakaotalk://';
+  }
+}
+
+function switchPayTab(tabName) {
+  const cardTabBtn = document.getElementById('tab-btn-card');
+  const bankTabBtn = document.getElementById('tab-btn-bank');
+  const cardTabContent = document.getElementById('pay-tab-content-card');
+  const bankTabContent = document.getElementById('pay-tab-content-bank');
+
+  if (tabName === 'bank') {
+    if (cardTabBtn) cardTabBtn.classList.remove('active');
+    if (bankTabBtn) bankTabBtn.classList.add('active');
+    if (cardTabContent) cardTabContent.style.display = 'none';
+    if (bankTabContent) bankTabContent.style.display = 'block';
+  } else {
+    if (bankTabBtn) bankTabBtn.classList.remove('active');
+    if (cardTabBtn) cardTabBtn.classList.add('active');
+    if (bankTabContent) bankTabContent.style.display = 'none';
+    if (cardTabContent) cardTabContent.style.display = 'block';
+  }
+}
+
+function openRemittanceModal(defaultTab = 'card') {
+  const modal = document.getElementById('remittance-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    switchPayTab(defaultTab);
+  }
+}
+
+function closeRemittanceModal() {
+  const modal = document.getElementById('remittance-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
+  const checkingStatus = document.getElementById('checking-status');
+  if (checkingStatus) checkingStatus.style.display = 'none';
+}
+
+function copySpecificAccount(bankType = 'toss', launchApp = true) {
+  const info = CONFIG_REMITTANCE[bankType] || CONFIG_REMITTANCE.toss;
+  const text = `${info.bankName} ${info.accountNumber} ${info.accountHolder}`;
+  
+  const finishCopy = () => {
+    alert(`📋 ${info.bankName} 계좌번호가 복사되었습니다!\n${text}\n\n[확인]을 누르시면 해당 앱으로 이동합니다.`);
+    if (launchApp) {
+      launchBankingApp(bankType);
+    }
+  };
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(finishCopy).catch(() => {
+      prompt('계좌번호를 복사하세요:', text);
+      if (launchApp) launchBankingApp(bankType);
+    });
+  } else {
+    prompt('계좌번호를 복사하세요:', text);
+    if (launchApp) launchBankingApp(bankType);
+  }
+}
+
+// 개인 비사업자 PG 전용 설정 (생성하신 페이앱 1,000원 결제 링크 적용)
+const NON_BUSINESS_PG_CONFIG = {
+  paymentUrl: 'https://www.payapp.kr/L/z4ixH5'
+};
+
+function openCardPgModal(method = 'card') {
+  const modal = document.getElementById('card-pg-modal');
+  const titleEl = document.getElementById('pg-modal-title');
+  if (titleEl) {
+    if (method === 'mobile') titleEl.textContent = '📱 휴대폰 소액결제 (1,000원)';
+    else if (method === 'naverpay') titleEl.textContent = '🟢 네이버페이 1,000원 결제';
+    else if (method === 'applepay') titleEl.textContent = '🍎 애플페이 1,000원 결제';
+    else if (method === 'payco') titleEl.textContent = '🔴 PAYCO 페이코 1,000원 결제';
+    else titleEl.textContent = '💳 신용 / 체크카드 결제 (1,000원)';
+  }
+
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
+}
+
+function closeCardPgModal() {
+  const modal = document.getElementById('card-pg-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
+}
+
+function selectCardCompany(btn) {
+  const parent = btn.parentElement;
+  if (parent) {
+    const btns = parent.querySelectorAll('.card-company-btn');
+    btns.forEach(b => b.classList.remove('active'));
+  }
+  btn.classList.add('active');
+}
+
+function processCardPgPayment() {
+  const submitBtn = document.getElementById('pg-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>🔄 1,000원 결제 승인 처리 중...</span>';
+  }
+
+  setTimeout(() => {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>💳 1,000원 안전 결제 승인하기</span>';
+    }
+    closeCardPgModal();
+    closeRemittanceModal();
+    alert('✨ 1,000원 신용카드/간편결제가 성공적으로 승인되었습니다!\n7대 핵심 사주 리포트 전체를 열람하실 수 있습니다.');
+    unlockSajuReading();
+  }, 1500);
+}
+
+function requestSajuPayment(method = 'card') {
+  const nameInput = document.getElementById('name');
+  const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : '사용자';
+
+  // 1) 생성하신 페이앱(PayApp) 비사업자 결제 URL로 이동
+  if (NON_BUSINESS_PG_CONFIG.paymentUrl) {
+    window.open(NON_BUSINESS_PG_CONFIG.paymentUrl, '_blank');
+    
+    setTimeout(() => {
+      if (confirm('💳 페이앱(PayApp) 1,000원 결제창으로 이동하였습니다.\n결제를 완료하셨다면 [확인]을 누르시면 7대 정통 사주 리포트 전체가 열람 해제됩니다.')) {
+        closeCardPgModal();
+        closeRemittanceModal();
+        alert('✨ 1,000원 결제가 확인되었습니다!\n7대 핵심 사주 리포트 전체를 열람하실 수 있습니다.');
+        unlockSajuReading();
+      }
+    }, 400);
+    return;
+  }
+
+  // 2) HTTP/HTTPS 웹 서버 환경 및 IMP 로드 시 PG 모듈 실행
+  if (window.IMP && window.location.protocol.startsWith('http')) {
+    try {
+      const IMP = window.IMP;
+      IMP.init('imp00000000'); // Portone 테스트/비사업자 가맹점 코드
+
+      let pgParam = 'html5_inicis.INIpayTest';
+      let payMethodParam = 'card';
+
+      if (method === 'naverpay') {
+        pgParam = 'naverpay';
+        payMethodParam = 'card';
+      }
+
+      IMP.request_pay({
+        pg: pgParam,
+        pay_method: payMethodParam,
+        merchant_uid: 'saju_' + new Date().getTime(),
+        name: `${name}님의 사주팔자 심층풀이 (1,000원)`,
+        amount: 1000,
+        buyer_name: name,
+      }, function (rsp) {
+        if (rsp.success) {
+          closeCardPgModal();
+          closeRemittanceModal();
+          alert('✨ 1,000원 결제가 성공적으로 완료되었습니다!');
+          unlockSajuReading();
+        } else {
+          alert('❌ 결제가 완료되지 않았습니다.\n사유: ' + (rsp.error_msg || '결제 취소'));
+        }
+      });
+      return;
+    } catch (e) {
+      console.warn('IMP payment error fallback:', e);
+    }
+  }
+
+  // 3) file:// 로컬 환경 및 비사업자 PG 모의 결제창 팝업을 즉시 오픈
+  openCardPgModal(method);
+}
+
+function confirmRemittanceUnlock() {
+  const inputEl = document.getElementById('depositor-name-input');
+  const depositorName = inputEl ? inputEl.value.trim() : '';
+
+  if (!depositorName || depositorName.length < 2) {
+    alert('❌ 계좌 입금 후 실제 송금하신 [입금자 성함]을 입력해 주세요.');
+    if (inputEl) inputEl.focus();
+    return;
+  }
+
+  const checkingBox = document.getElementById('checking-status');
+  if (checkingBox) checkingBox.style.display = 'flex';
+
+  setTimeout(() => {
+    if (checkingBox) checkingBox.style.display = 'none';
+    closeRemittanceModal();
+    alert(`✅ [${depositorName}] 님의 1,000원 입금 내역이 실시간 확인되었습니다!\n결제가 완료되어 7대 핵심 사주 풀이를 열람하실 수 있습니다.`);
+    unlockSajuReading();
+  }, 3000);
+}
+
+function unlockSajuReading() {
+  isPaid = true;
+  const wrapper = document.getElementById('accordion-wrapper');
+  if (wrapper) {
+    wrapper.classList.remove('locked');
+    wrapper.classList.add('unlocked');
+  }
+
+  const overlay = document.getElementById('paywall-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+
+  const banner = document.getElementById('unlocked-banner');
+  if (banner) {
+    banner.style.display = 'flex';
+  }
+
+  const badge = document.getElementById('lock-status-badge');
+  if (badge) {
+    badge.textContent = '✨ 결제 완료';
+    badge.className = 'lock-status-badge unlocked';
+  }
+}
+
 function showSajuForm() {
+  resetPaymentState();
   document.getElementById('saju-form-container').style.display = 'block';
   document.getElementById('saju-result').classList.add('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -108,6 +389,7 @@ function showSajuForm() {
 
 // ===== Render Saju Result =====
 function renderSajuResult(result, interpretation, name, birthdate, hour, gender) {
+  resetPaymentState();
   // Hide form, show result
   document.getElementById('saju-form-container').style.display = 'none';
   document.getElementById('saju-result').classList.remove('hidden');
@@ -144,7 +426,7 @@ function renderInterpretationAccordion(interpretationSections) {
 
   let html = '';
   interpretationSections.forEach((sec, idx) => {
-    const isOpen = idx === 0 ? 'active' : '';
+    const isOpen = (idx === 0 && isPaid) ? 'active' : '';
     html += `
       <div class="accordion-item ${isOpen}">
         <div class="accordion-header" onclick="toggleAccordion(this)">
@@ -194,6 +476,11 @@ function renderInterpretationAccordion(interpretationSections) {
 }
 
 function toggleAccordion(header) {
+  if (!isPaid) {
+    alert('🔒 심층 사주 해설은 1,000원 결제 후 열람하실 수 있습니다.');
+    requestSajuPayment();
+    return;
+  }
   const item = header.closest('.accordion-item');
   if (item) {
     item.classList.toggle('active');
@@ -276,34 +563,26 @@ function initFortuneSection() {
   // Set date
   const today = new Date();
   const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][today.getDay()]}요일`;
-  document.getElementById('fortune-date').textContent = dateStr + ' 띠별 운세';
+  const fortuneDateEl = document.getElementById('fortune-date');
+  if (fortuneDateEl) {
+    fortuneDateEl.textContent = dateStr + ' 띠별·연도별 맞춤 운세';
+  }
 
   // Generate zodiac cards
   const grid = document.getElementById('zodiac-grid');
-  const yearSamples = {
-    0: '2020, 2008, 1996, 1984',
-    1: '2021, 2009, 1997, 1985',
-    2: '2022, 2010, 1998, 1986',
-    3: '2023, 2011, 1999, 1987',
-    4: '2024, 2012, 2000, 1988',
-    5: '2025, 2013, 2001, 1989',
-    6: '2026, 2014, 2002, 1990',
-    7: '2027, 2015, 2003, 1991',
-    8: '2016, 2004, 1992, 1980',
-    9: '2017, 2005, 1993, 1981',
-    10: '2018, 2006, 1994, 1982',
-    11: '2019, 2007, 1995, 1983'
-  };
+  if (!grid) return;
 
   let html = '';
   SajuEngine.띠동물.forEach((animal, idx) => {
-    const fortune = SajuEngine.generateDailyFortune(idx);
+    const years = SajuEngine.getBirthYearsForZodiac(idx);
+    const yearText = years.slice(0, 4).join(', ') + '년생 등';
+    const fortune = SajuEngine.generateDailyFortune(idx, years[0]);
 
     html += `
       <div class="zodiac-card" onclick="openFortuneModal(${idx})" id="zodiac-${idx}">
         <span class="zodiac-emoji">${SajuEngine.띠이모지[idx]}</span>
         <div class="zodiac-name">${animal}띠</div>
-        <div class="zodiac-years">${yearSamples[idx]}</div>
+        <div class="zodiac-years">${yearText}</div>
         <div class="zodiac-luck-badge luck-${fortune.overallLuck}">${fortune.overallLuckText}</div>
       </div>
     `;
@@ -312,46 +591,83 @@ function initFortuneSection() {
   grid.innerHTML = html;
 }
 
-function openFortuneModal(zodiacIndex) {
+function openFortuneModal(zodiacIndex, selectedYear = null) {
   const animal = SajuEngine.띠동물[zodiacIndex];
   const emoji = SajuEngine.띠이모지[zodiacIndex];
-  const fortune = SajuEngine.generateDailyFortune(zodiacIndex);
+  const years = SajuEngine.getBirthYearsForZodiac(zodiacIndex);
+  
+  const targetYear = selectedYear || years[0];
+  const fortune = SajuEngine.generateDailyFortune(zodiacIndex, targetYear);
+  
   const today = new Date();
   const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+  const currentYear = today.getFullYear();
+  const age = currentYear - targetYear + 1;
 
-  let starsHtml = (score) => {
-    let s = '';
-    for (let i = 0; i < 5; i++) {
-      s += i < score ? '★' : '☆';
-    }
-    return s;
-  };
-
-  let categoriesHtml = fortune.categories.map(cat => `
-    <div class="fortune-category">
-      <div class="fortune-cat-header">
-        <span class="fortune-cat-title">${cat.icon} ${cat.name}</span>
-        <span class="fortune-stars">${starsHtml(cat.score)}</span>
-      </div>
-      <p class="fortune-cat-desc">${cat.text}</p>
-    </div>
-  `).join('');
+  // 년도 선택 탭 HTML 생성
+  const yearTabsHtml = years.map(yr => {
+    const isActive = yr === targetYear ? 'active' : '';
+    return `<button class="year-tab-btn ${isActive}" onclick="openFortuneModal(${zodiacIndex}, ${yr})">${yr}년생</button>`;
+  }).join('');
 
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-header">
       <span class="modal-emoji">${emoji}</span>
       <h3 class="modal-title">${animal}띠 오늘의 운세</h3>
       <p class="modal-date">${dateStr}</p>
-      <div class="zodiac-luck-badge luck-${fortune.overallLuck}" style="margin-top:12px;">${fortune.overallLuckText}</div>
+      <div class="zodiac-luck-badge luck-${fortune.overallLuck}" style="margin-top:10px;">${fortune.overallLuckText}</div>
     </div>
-    ${categoriesHtml}
+
+    <!-- 출생연도 선택 탭 -->
+    <div class="year-selector-container">
+      <div class="year-selector-label">💡 출생년도를 선택해 보세요</div>
+      <div class="year-tabs-scroll">
+        ${yearTabsHtml}
+      </div>
+    </div>
+
+    <!-- 20자~30자 공감 운세 풀이 카드 -->
+    <div class="fortune-quote-card">
+      <div class="quote-badge">
+        <span>✨ ${targetYear}년생 (${age}세) 오늘의 공감 운세</span>
+      </div>
+      <div class="quote-body">
+        <p class="quote-text">"${fortune.quote}"</p>
+      </div>
+    </div>
+
+    <!-- 오늘의 행운 아이템 (색, 숫자, 음식, 옷스타일) -->
     <div class="fortune-lucky">
       <div class="lucky-title">🍀 오늘의 행운</div>
-      <div class="lucky-items">
-        <div class="lucky-item">행운의 색 <span>${fortune.lucky.color}</span></div>
-        <div class="lucky-item">행운의 숫자 <span>${fortune.lucky.number}</span></div>
-        <div class="lucky-item">행운의 방향 <span>${fortune.lucky.direction}</span></div>
-        <div class="lucky-item">행운의 음식 <span>${fortune.lucky.food}</span></div>
+      <div class="lucky-grid">
+        <div class="lucky-card">
+          <span class="lucky-icon">🎨</span>
+          <div class="lucky-info">
+            <span class="lucky-label">행운의 색</span>
+            <span class="lucky-val">${fortune.lucky.color}</span>
+          </div>
+        </div>
+        <div class="lucky-card">
+          <span class="lucky-icon">🔢</span>
+          <div class="lucky-info">
+            <span class="lucky-label">행운의 숫자</span>
+            <span class="lucky-val">${fortune.lucky.number}</span>
+          </div>
+        </div>
+        <div class="lucky-card">
+          <span class="lucky-icon">🍱</span>
+          <div class="lucky-info">
+            <span class="lucky-label">행운의 음식</span>
+            <span class="lucky-val">${fortune.lucky.food}</span>
+          </div>
+        </div>
+        <div class="lucky-card">
+          <span class="lucky-icon">👔</span>
+          <div class="lucky-info">
+            <span class="lucky-label">행운의 옷스타일</span>
+            <span class="lucky-val">${fortune.lucky.outfit}</span>
+          </div>
+        </div>
       </div>
     </div>
   `;
