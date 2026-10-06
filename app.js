@@ -13,7 +13,9 @@ let session = null;
 let profile = null;
 
 const COST_FORTUNE = 100; // 오늘의 운세만 포인트(가입·추천 보상)로 이용
-const PRICE = 990; // 사주풀이 · 전생풀이 · 전생풀이 추가 8가지, 건당 결제 (실제 금액은 서버가 정함)
+const PRICE = 1000; // 사주풀이 · 전생풀이 · 전생풀이 추가 8가지, 건당 결제 (실제 금액은 서버가 정함)
+const PURCHASE_BONUS = 100; // 결제해서 풀이를 받으면 적립 (오늘의 운세 1회)
+const PRODUCT_NAME = { saju: '사주풀이', jyotish: '전생풀이', jyotish_extra: '전생풀이 추가 8가지' };
 const REFERRAL_REWARD = 100;
 const REFERRAL_DAILY_LIMIT = 100;
 
@@ -58,7 +60,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 const fmtP = (n) => `${Number(n || 0).toLocaleString('ko-KR')}P`;
 const fmtWon = (n) => `${Number(n).toLocaleString('ko-KR')}원`;
 const myBalance = () => (profile?.is_admin ? '무제한' : fmtP(profile?.points));
-const paidText = () => (profile?.is_admin ? '관리자 계정이라 결제 없이 보여드려요.' : '결제가 완료되어 풀이를 보여드려요.');
+const paidText = () => (profile?.is_admin ? '관리자 계정이라 결제 없이 보여드려요.' : `결제가 완료되어 풀이를 보여드려요. ${fmtP(PURCHASE_BONUS)} 적립!`);
 // 차감 안내: 관리자는 차감되지 않음
 const spentText = (cost) => (profile?.is_admin ? '관리자 계정이라 포인트가 차감되지 않아요.' : `${fmtP(cost)} 사용 · 남은 포인트 ${fmtP(profile?.points)}`);
 
@@ -109,15 +111,14 @@ function resumePendingAction() {
     action = JSON.parse(sessionStorage.getItem('pending_action') || 'null');
     sessionStorage.removeItem('pending_action');
   } catch (_) { /* 없음 */ }
-  // 모바일 결제는 결제사 화면에 다녀온 뒤 ?paymentId=...(&code=실패코드)로 돌아옴
+  // 페이앱 결제를 마치면 ?paid=1 로 돌아옴. 결제 없이 뒤로 돌아온 경우엔 결제 대기 작업을 버림
   const q = new URLSearchParams(location.search);
-  const payFailed = q.has('paymentId') && q.has('code');
-  if (q.has('paymentId')) {
-    ['paymentId', 'code', 'message', 'transactionType', 'txId'].forEach(k => q.delete(k));
+  const returnedPaid = q.has('paid');
+  if (returnedPaid) {
+    q.delete('paid');
     history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : '') + location.hash);
   }
-  if (!action) return;
-  if (payFailed) return showToast('결제가 완료되지 않았어요.');
+  if (!action || (action.paymentId && !returnedPaid)) return;
   closeSheet();
   runAction(action);
 }
@@ -140,43 +141,68 @@ function runAction(action) {
   }
 }
 
-// ===== 건별 결제 (포트원) =====
-// 서버가 PAYMENT_REQUIRED를 돌려주면 결제창을 열고, 결제가 끝나면 같은 요청을 paymentId와 함께 다시 보냄.
-// 모바일은 결제 후 이 페이지로 다시 들어오므로 pending_action에 담아 두었다가 이어서 실행
-async function payAndRun(product, action, paidAlready) {
+// ===== 건별 결제 (페이앱) =====
+// 서버가 PAYMENT_REQUIRED를 돌려주면 휴대폰 번호를 받아 페이앱 결제창으로 보냄.
+// 결제 후 ?paid=1 로 돌아오면 pending_action을 paymentId와 함께 다시 실행하고,
+// 결제 완료 알림이 서버에 닿을 때까지 몇 번 더 확인함
+let payTarget = null;
+let payChecks = 0;
+
+function payAndRun(product, action, paidAlready) {
   if (paidAlready) {
-    // 결제했는데도 서버가 확인하지 못한 경우: 다시 결제시키지 않음
-    return alert('결제 확인이 아직 안 됐어요. 잠시 후 다시 시도해 주시고, 계속 안 되면 하단 이메일로 문의해 주세요.');
+    if (++payChecks <= 10) {
+      showToast('결제를 확인하고 있어요…');
+      return setTimeout(() => runAction({ ...action, paymentId: paidAlready }), 2000);
+    }
+    payChecks = 0;
+    return alert('결제 확인이 늦어지고 있어요. 결제를 마치셨다면 잠시 후 같은 버튼을 다시 눌러 주세요. 추가 결제 없이 진행돼요.');
   }
-  if (!CFG.PORTONE_STORE_ID || !CFG.PORTONE_CHANNEL_KEY || !window.PortOne) {
-    return alert('결제 기능을 준비하고 있어요. 조금만 기다려 주세요.');
+  payChecks = 0;
+  payTarget = { product, action };
+  openSheet(`
+    <div class="sheet-head">
+      <div>
+        <h2 class="sheet-title" id="sheet-title">${PRODUCT_NAME[product]} 결제</h2>
+        <p class="sheet-sub">${fmtWon(PRICE)} · 결제하면 오늘의 운세 1회(${fmtP(PURCHASE_BONUS)}) 적립</p>
+      </div>
+    </div>
+    <form class="pay-form" onsubmit="return startPayment(event)">
+      <label class="field-label" for="pay-phone">휴대폰 번호</label>
+      <input type="tel" id="pay-phone" class="input" inputmode="numeric" autocomplete="tel" placeholder="01012345678" maxlength="13" required>
+      <p class="field-help">결제사(페이앱)의 결제 확인에 쓰여요. 문자는 보내지 않고, 사이트에는 저장하지 않아요.</p>
+      <button type="submit" class="btn-primary btn-submit" id="pay-submit">
+        <span class="btn-text">${fmtWon(PRICE)} 결제하기</span>
+        <span class="btn-loader" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+      <p class="pay-note">결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
+    </form>
+  `);
+}
+
+async function startPayment(e) {
+  e.preventDefault();
+  const phone = document.getElementById('pay-phone').value.replace(/\D/g, '');
+  if (!/^01\d{8,9}$/.test(phone)) {
+    alert('휴대폰 번호를 정확히 입력해 주세요. (예: 01012345678)');
+    return false;
   }
-  let order;
+  const btn = document.getElementById('pay-submit');
+  btn.classList.add('loading');
+  btn.disabled = true;
   try {
-    order = await callFn('payment', { product });
-  } catch (err) {
-    return handleCallError(err);
-  }
-  const retry = { ...action, paymentId: order.paymentId };
-  savePendingAction(retry);
-  let res;
-  try {
-    res = await PortOne.requestPayment({
-      storeId: CFG.PORTONE_STORE_ID,
-      channelKey: CFG.PORTONE_CHANNEL_KEY,
-      paymentId: order.paymentId,
-      orderName: order.orderName,
-      totalAmount: order.amount,
-      currency: 'CURRENCY_KRW',
-      payMethod: 'CARD',
-      redirectUrl: location.origin + location.pathname,
+    const { paymentId, payurl } = await callFn('payment', {
+      product: payTarget.product,
+      phone,
+      returnUrl: `${location.origin}${location.pathname}?paid=1`,
     });
-  } catch (_) {
-    res = { code: 'FAILED' };
+    savePendingAction({ ...payTarget.action, paymentId });
+    location.href = payurl;
+  } catch (err) {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    handleCallError(err);
   }
-  try { sessionStorage.removeItem('pending_action'); } catch (_) { /* 없음 */ }
-  if (res?.code) return showToast(res.message || '결제가 완료되지 않았어요.');
-  runAction(retry);
+  return false;
 }
 
 function renderAuthState() {
@@ -210,6 +236,7 @@ async function callFn(name, body) {
 
 function handleCallError(err, cost) {
   if (err.code === 'PAYMENT_REQUIRED') return alert('결제가 필요한 풀이예요.');
+  if (err.code === 'PAYMENT_UNAVAILABLE') return alert('결제 기능을 준비하고 있어요. 조금만 기다려 주세요.');
   if (err.code === 'INSUFFICIENT_POINTS') return openPointsSheet(cost);
   if (err.code === 'UNAUTHORIZED') return openLoginSheet();
   alert('요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.');
@@ -327,7 +354,7 @@ async function openAccountSheet() {
     <div class="balance">
       <span class="balance-label">보유 포인트</span>
       <strong class="balance-value">${myBalance()}</strong>
-      <span class="balance-note">포인트는 오늘의 운세(1회 ${fmtP(COST_FORTUNE)})에 쓰여요 · 사주풀이와 전생풀이는 건당 ${fmtWon(PRICE)}</span>
+      <span class="balance-note">포인트는 오늘의 운세(1회 ${fmtP(COST_FORTUNE)})에 쓰여요 · 사주풀이와 전생풀이는 건당 ${fmtWon(PRICE)}, 결제하면 ${fmtP(PURCHASE_BONUS)} 적립</span>
     </div>
     ${shareBlockHtml()}
     <button type="button" class="btn-outline" disabled>포인트 충전 (준비 중)</button>
@@ -504,6 +531,7 @@ function runSaju(body, paymentId) {
   submitBtn.disabled = true;
 
   callFn('saju', { ...body, paymentId }).then(data => {
+    setBalance(data.balance);
     showReading(data.reading);
     loadHistory();
     showToast(data.charged ? paidText() : '이미 본 사주라 무료로 다시 보여드려요.');
@@ -946,6 +974,7 @@ function runJyotish(body, paymentId) {
 
   callFn('jyotish', { ...body, paymentId }).then(data => {
     progress.done();
+    setBalance(data.balance);
     showJyotishReading(data.reading);
     loadJyotishHistory();
     showToast(data.charged ? paidText() : '이미 본 풀이라 무료로 다시 보여드려요.');
@@ -991,6 +1020,7 @@ function unlockJyotishExtra(paymentId) {
   const readingId = currentJyotish.id;
   callFn('jyotish', { part: 'extra', readingId, paymentId }).then(data => {
     progress.done();
+    setBalance(data.balance);
     currentJyotish.extra = data.extra;
     const firstNew = renderJyotishSections(currentJyotish);
     firstNew?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1082,7 +1112,7 @@ function renderJyotishSections(record) {
       <span class="btn-text">나머지 8가지 풀이 열기 · ${fmtWon(PRICE)}</span>
       <span class="btn-loader" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
-    <p class="pay-note">결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
+    <p class="pay-note">결제하면 오늘의 운세 1회(100P)를 적립해 드려요.<br>결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
     <p class="trust" id="j-unlock-wait" hidden>AI가 이번 생 풀이를 쓰는 중이에요. 1분 정도 걸려요. 창을 닫지 말아주세요. <strong class="wait-pct" id="j-unlock-pct">0%</strong></p>`;
   box.replaceChildren(...items, locked);
   return null;

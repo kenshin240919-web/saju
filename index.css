@@ -1810,3 +1810,11 @@ button {
 .pay-note a {
   color: inherit;
 }
+
+.pay-form .btn-submit {
+  margin-top: 16px;
+}
+
+.pay-form {
+  margin-top: 16px;
+}

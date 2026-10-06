@@ -9,7 +9,4 @@ window.APP_CONFIG = {
   KAKAO_CLIENT_ID: '308f36344f4935173fb3928908d66c07',
   // 네이버 개발자센터 > 내 애플리케이션 의 Client ID (비워두면 네이버 로그인 버튼이 숨겨짐)
   NAVER_CLIENT_ID: 'Oh8xuBDItQrHanLQlQcT',
-  // 포트원 관리자 콘솔 > 결제 연동 의 상점 아이디(store-...)와 채널 키(channel-key-...). 비워두면 결제 버튼이 "준비 중" 안내만 보여줌
-  PORTONE_STORE_ID: '',
-  PORTONE_CHANNEL_KEY: '',
 };
