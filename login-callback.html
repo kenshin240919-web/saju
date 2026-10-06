@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>로그인 중 - 사주 이루리라</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <main class="page">
+    <div class="card callback-card">
+      <p id="status">로그인 중입니다…</p>
+      <a href="./" id="home-link" hidden>처음으로 돌아가기</a>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    // 카카오·네이버가 돌려준 인가 코드 → 서버(social-login)에서 회원 확인 → 일회용 토큰으로 로그인
+    (async () => {
+      const status = document.getElementById('status');
+      const fail = (msg) => {
+        status.textContent = msg;
+        document.getElementById('home-link').hidden = false;
+      };
+
+      const params = new URLSearchParams(location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      let saved = {};
+      try {
+        saved = JSON.parse(sessionStorage.getItem('oauth_state') || '{}');
+      } catch (_) { /* 저장값 없음 */ }
+      sessionStorage.removeItem('oauth_state');
+
+      if (params.get('error')) return fail('로그인이 취소되었습니다.');
+      // state가 다르면 다른 사이트가 끼어든 요청일 수 있어 중단 (CSRF 방지)
+      if (!code || !state || state !== saved.state) return fail('로그인 요청이 올바르지 않습니다. 다시 시도해 주세요.');
+
+      const cfg = window.APP_CONFIG;
+      const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+      const { data, error } = await sb.functions.invoke('social-login', {
+        body: { provider: saved.provider, code, state, redirectUri: saved.redirectUri },
+      });
+      if (error || !data?.token_hash) {
+        // 원인 파악용 오류 코드 표시 (예: PROVIDER_LOGIN_FAILED, SIGNUP_FAILED)
+        let codeText = '';
+        try { codeText = (await error.context.json()).error || ''; } catch (_) { /* 네트워크 오류 등 */ }
+        return fail(`로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.${codeText ? ` (오류 코드: ${codeText})` : ''}`);
+      }
+
+      const { error: otpError } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
+      if (otpError) return fail('로그인 처리 중 문제가 생겼습니다. 다시 시도해 주세요.');
+
+      location.replace('./');
+    })();
+  </script>
+</body>
+</html>

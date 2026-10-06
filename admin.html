@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>관리자 - 사주 이루리라</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css?v=20261007">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">
+      <span class="brand-seal" aria-hidden="true">成</span>
+      <span class="brand-name">관리자</span>
+    </a>
+    <a class="account-btn admin-home" href="./">사이트로</a>
+  </header>
+
+  <main class="page admin-page">
+    <p class="admin-message" id="admin-message">확인 중…</p>
+
+    <div id="admin-content" hidden>
+      <section class="admin-stats" id="admin-stats" aria-label="오늘 현황"></section>
+
+      <form class="admin-search" onsubmit="event.preventDefault(); loadUsers();">
+        <label class="field-label" for="admin-q">회원 검색</label>
+        <div class="admin-search-row">
+          <input type="search" id="admin-q" class="input" placeholder="이름 또는 이메일">
+          <button type="submit" class="btn-primary admin-search-btn">검색</button>
+        </div>
+      </form>
+
+      <p class="admin-count" id="admin-count"></p>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">이름</th>
+              <th scope="col">가입경로</th>
+              <th scope="col">포인트</th>
+              <th scope="col">사주</th>
+              <th scope="col">운세</th>
+              <th scope="col">전생</th>
+              <th scope="col">추천 방문</th>
+              <th scope="col">가입일</th>
+              <th scope="col">최근 활동</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- 회원 상세 (바텀시트) -->
+  <div class="sheet-overlay" id="sheet">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <button type="button" class="sheet-close" onclick="closeSheet()" aria-label="닫기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div id="sheet-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="admin.js?v=20261007"></script>
+</body>
+</html>
