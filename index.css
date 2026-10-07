@@ -1,24 +1,30 @@
 /* ============================================
-   사주 이루리라 - 한지와 먹 (모바일 우선)
+   사주 이루리라 - 귀여운 말 · 당근 · 파스텔 (모바일 우선)
    ============================================ */
 
 :root {
   /* 바탕 · 글씨 (텍스트 색은 모두 바탕 대비 4.5:1 이상) */
-  --ground: #F5EFE3;      /* 한지 */
-  --surface: #FFFCF6;
+  --ground: #FBF6EC;      /* 크림 */
+  --surface: #FFFFFF;
   --field: #FFFFFF;
-  --track: #EFE6D6;
-  --line: #E4D9C5;
-  --line-strong: #D8CCB6;
-  --ink: #1E1A15;         /* 먹 */
+  --track: #F3EBDD;
+  --line: #EFE5D3;
+  --line-strong: #E3D6BF;
+  --ink: #1F1A15;
   --ink-soft: #2E2821;
-  --sub: #5A5047;
+  --sub: #5E544B;
   --muted: #6E6358;
 
-  /* 포인트: 인주 */
-  --seal: #A8261C;
-  --seal-dark: #7E1C15;
-  --seal-tint: #FBEDEA;
+  /* 강조색: 당근 (흰 글씨 대비 4.9:1, 크림 바탕 대비 4.5:1 이상) */
+  --seal: #C2491A;
+  --seal-dark: #9A3712;
+  --seal-tint: #FFEFE5;
+
+  /* 메뉴별 파스텔 */
+  --c-yellow: #FFF5B8;
+  --c-pink: #FDE8EF;
+  --c-blue: #D8EEFA;
+  --c-green: #E7F4C2;
 
   /* 오행 (글자색 / 바탕색) */
   --wood: #2D7A4B;  --wood-bg: #E6F1EA;
@@ -29,13 +35,13 @@
 
   /* 고운바탕에는 한자가 없어서 한자(成, 庚 등)는 Noto Serif KR로 표시 */
   --serif: 'Gowun Batang', 'Noto Serif KR', serif;
-  --sans: 'IBM Plex Sans KR', sans-serif;
+  --sans: 'Noto Sans KR', sans-serif;
 
   --topbar-h: 60px;
   --tabbar-h: 64px;
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --radius-sm: 12px;
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --radius-sm: 14px;
 }
 
 *, *::before, *::after {
@@ -108,18 +114,10 @@ button {
 }
 
 /* 로고 인장: 成 (이룰 성) */
-.brand-seal {
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  background: var(--seal);
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: 19px;
+.brand-horse {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
 }
 
 .brand-name {
@@ -1027,15 +1025,22 @@ button {
   color: var(--seal);
 }
 
+/* 풀이 글씨: 큰 글씨 (프리텐다드) */
+.acc-head,
+.acc-body {
+  font-family: 'Pretendard Variable', Pretendard, var(--sans);
+}
+
 .acc-title {
   flex-grow: 1;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.4;
+  letter-spacing: -0.02em;
 }
 
 .acc-item.open .acc-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 800;
 }
 
 .acc-chevron {
@@ -1050,10 +1055,13 @@ button {
 
 .acc-body {
   display: none;
-  padding: 0 18px 20px 44px;
-  font-size: 16px;
-  line-height: 1.8;
-  color: var(--ink-soft);
+  padding: 2px 20px 24px;
+  font-size: 18.5px;
+  line-height: 1.9;
+  letter-spacing: -0.015em;
+  color: #241E18;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .acc-item.open .acc-body {
@@ -1061,7 +1069,14 @@ button {
 }
 
 .acc-body p + p {
-  margin-top: 12px;
+  margin-top: 18px;
+}
+
+/* 첫 문단은 조금 크고 진하게 (핵심부터 눈에 들어오게) */
+.acc-body p:first-child {
+  font-size: 19.5px;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .acc-body strong {
@@ -1310,9 +1325,22 @@ button {
 }
 
 .account-btn.has-points {
-  color: var(--seal);
-  background: var(--seal-tint);
-  border-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.carrot-ico {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  vertical-align: -4px;
 }
 
 .config-banner {
@@ -1739,17 +1767,7 @@ button {
   background: var(--track);
 }
 
-/* ---------- 광고 · 푸터 ---------- */
-.ad-container {
-  margin: 16px 0;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-}
-
-.ad-container .adsbygoogle {
-  width: 100%;
-}
-
+/* ---------- 푸터 ---------- */
 .footer {
   margin-top: 32px;
   padding: 24px 4px 8px;
@@ -1977,4 +1995,126 @@ button {
 
 .pay-form {
   margin-top: 16px;
+}
+
+/* ===== 첫 화면: 귀여운 말 카드 2×2 (누르면 아래에 예시) ===== */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-card {
+  padding: 12px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  color: var(--ink);
+  border: 2px solid transparent;
+  border-radius: 22px;
+  transition: transform 0.12s, border-color 0.15s;
+}
+
+.home-card:active {
+  transform: scale(0.98);
+}
+
+.home-card[aria-expanded="true"] {
+  border-color: var(--seal);
+}
+
+.home-card.c-yellow { background: var(--c-yellow); }
+.home-card.c-pink { background: var(--c-pink); }
+.home-card.c-blue { background: var(--c-blue); }
+.home-card.c-green { background: var(--c-green); }
+
+.home-pic {
+  display: block;
+  aspect-ratio: 1;
+}
+
+.home-pic svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.home-title {
+  margin: 10px 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.home-desc {
+  margin: 4px 2px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--sub);
+}
+
+.badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 8px 3px 5px;
+  font-size: 13px;
+  font-weight: 800;
+  background: #FFFFFF;
+  border-radius: 999px;
+}
+
+.badge .carrot-ico {
+  width: 17px;
+  height: 17px;
+}
+
+.home-grid .intro-sample {
+  grid-column: 1 / -1;
+}
+
+.home-grid .intro-sample .sample {
+  margin: 4px 0 8px;
+}
+
+.carrot-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--sub);
+}
+
+.carrot-info h2 {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.carrot-info p + p {
+  margin-top: 6px;
+}
+
+.carrot-info b {
+  color: var(--ink);
+}
+
+.balance-value .carrot-ico {
+  width: 26px;
+  height: 26px;
+  margin-right: 4px;
+  vertical-align: -3px;
 }

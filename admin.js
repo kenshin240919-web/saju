@@ -11,7 +11,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) : '—';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'short', timeStyle: 'short' }) : '—';
 const PROVIDER_LABEL = { kakao: '카카오', naver: '네이버', google: 'Google' };
-const REASON_LABEL = { signup: '가입 축하', admin: '관리자', referral: '추천 링크 방문', saju: '사주풀이', fortune: '오늘의 운세', jyotish: '전생풀이', jyotish_extra: '전생풀이 추가' };
+const REASON_LABEL = { signup: '가입 축하', admin: '관리자', purchase_bonus: '결제 적립', referral: '추천 링크 방문', saju: '사주풀이', fortune: '오늘의 운세', jyotish: '전생풀이', jyotish_extra: '전생풀이 추가' };
 
 let users = [];
 
@@ -71,19 +71,19 @@ async function openUser(i) {
       </div>
     </div>
     <div class="balance">
-      <span class="balance-label">보유 포인트</span>
-      <strong class="balance-value" id="detail-points">${u.points.toLocaleString('ko-KR')}P</strong>
+      <span class="balance-label">보유 당근</span>
+      <strong class="balance-value" id="detail-points">${u.points.toLocaleString('ko-KR')}개</strong>
       <span class="balance-note">사주 ${u.saju_count}회 · 운세 ${u.fortune_count}회 · 전생 ${u.jyotish_count ?? 0}회 · 추천 방문 ${u.referral_count}회</span>
     </div>
-    <h3 class="sheet-section-title">포인트 지급 · 회수</h3>
+    <h3 class="sheet-section-title">당근 지급 · 회수</h3>
     <form class="admin-search" onsubmit="event.preventDefault(); grantPoints(${i});">
       <div class="admin-search-row">
-        <input type="number" class="input" id="grant-amount" inputmode="numeric" step="100" placeholder="예: 5000 (회수는 -1000)" aria-label="포인트" required>
+        <input type="number" class="input" id="grant-amount" inputmode="numeric" step="100" placeholder="예: 5000 (회수는 -1000)" aria-label="당근" required>
         <button type="submit" class="btn-primary admin-search-btn">적용</button>
       </div>
       <input type="text" class="input" id="grant-memo" maxlength="40" placeholder="메모 (선택, 예: 이벤트 당첨)" aria-label="메모">
     </form>
-    <h3 class="sheet-section-title">포인트 내역 (최근 100건)</h3>
+    <h3 class="sheet-section-title">당근 내역 (최근 100건)</h3>
     <ul class="ledger" id="detail-ledger"><li class="ledger-empty">불러오는 중…</li></ul>
     <h3 class="sheet-section-title">사주풀이 기록</h3>
     <ul class="ledger" id="detail-readings"><li class="ledger-empty">불러오는 중…</li></ul>
@@ -100,9 +100,9 @@ async function grantPoints(i) {
   const { data, error } = await sb.rpc('admin_grant_points', {
     uid: u.id, amount, note: document.getElementById('grant-memo').value,
   });
-  if (error) return alert(error.message.includes('INSUFFICIENT') ? '보유 포인트보다 많이 회수할 수 없습니다.' : '처리하지 못했습니다: ' + error.message);
+  if (error) return alert(error.message.includes('INSUFFICIENT') ? '보유 당근보다 많이 회수할 수 없습니다.' : '처리하지 못했습니다: ' + error.message);
   u.points = data;
-  document.getElementById('detail-points').textContent = data.toLocaleString('ko-KR') + 'P';
+  document.getElementById('detail-points').textContent = data.toLocaleString('ko-KR') + '개';
   document.getElementById('grant-amount').value = document.getElementById('grant-memo').value = '';
   loadUsers();
   loadUserDetail(u);
@@ -114,7 +114,7 @@ async function loadUserDetail(u) {
   document.getElementById('detail-ledger').innerHTML = data.ledger.map(l => `
     <li>
       <span>${REASON_LABEL[l.reason] || esc(l.reason)}<small>${fmtDateTime(l.created_at)}${l.memo ? ' · ' + esc(l.memo) : ''}</small></span>
-      <strong class="${l.amount > 0 ? 'plus' : 'minus'}">${l.amount > 0 ? '+' : ''}${l.amount.toLocaleString('ko-KR')}P</strong>
+      <strong class="${l.amount > 0 ? 'plus' : 'minus'}">${l.amount > 0 ? '+' : ''}${l.amount.toLocaleString('ko-KR')}</strong>
     </li>
   `).join('') || '<li class="ledger-empty">내역이 없습니다.</li>';
   document.getElementById('detail-readings').innerHTML = data.readings.map(r => `

@@ -1,6 +1,6 @@
 /* ============================================
    사주 이루리라 - Main Application Logic
-   계산·포인트·결제 확인은 서버(Supabase Edge Function)에서 처리하고,
+   계산·당근(포인트)·결제 확인은 서버(Supabase Edge Function)에서 처리하고,
    브라우저는 로그인 · 입력 · 결과 표시만 담당
    ============================================ */
 
@@ -12,9 +12,10 @@ const sb = CONFIGURED && window.supabase ? window.supabase.createClient(CFG.SUPA
 let session = null;
 let profile = null;
 
-const COST_FORTUNE = 100; // 오늘의 운세만 포인트(가입·추천 보상)로 이용
-const PRICE = 1000; // 사주풀이 · 전생풀이 · 전생풀이 추가 8가지, 건당 결제 (실제 금액은 서버가 정함)
-const PURCHASE_BONUS = 100; // 결제해서 풀이를 받으면 적립 (오늘의 운세 1회)
+// 당근 = 포인트 (당근 1개 = 1원 가치). 유료 풀이는 당근으로 보거나, 당근이 부족하면 같은 금액(원)으로 결제
+const COST_FORTUNE = 100;
+const PRICES = { saju: 1000, jyotish: 1100, jyotish_extra: 1100 }; // 실제 금액은 서버가 정함
+const PURCHASE_BONUS = 100; // 현금 결제로 풀이를 받으면 적립
 const PRODUCT_NAME = { saju: '사주풀이', jyotish: '전생풀이', jyotish_extra: '전생풀이 추가 8가지' };
 const REFERRAL_REWARD = 100;
 const REFERRAL_DAILY_LIMIT = 100;
@@ -57,12 +58,15 @@ function getBirthYearsForZodiac(zodiacIndex) {
 
 // 텍스트를 HTML에 넣을 때 사용
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const fmtP = (n) => `${Number(n || 0).toLocaleString('ko-KR')}P`;
+const fmtP = (n) => `당근 ${Number(n || 0).toLocaleString('ko-KR')}개`;
+const carrotIcon = () => '<svg class="carrot-ico" aria-hidden="true"><use href="#i-carrot"/></svg>';
 const fmtWon = (n) => `${Number(n).toLocaleString('ko-KR')}원`;
-const myBalance = () => (profile?.is_admin ? '무제한' : fmtP(profile?.points));
-const paidText = () => (profile?.is_admin ? '관리자 계정이라 결제 없이 보여드려요.' : `결제가 완료되어 풀이를 보여드려요. ${fmtP(PURCHASE_BONUS)} 적립!`);
+const myBalance = () => (profile?.is_admin ? '무제한' : Number(profile?.points || 0).toLocaleString('ko-KR'));
+// 풀이를 받은 방법에 맞는 안내 (서버가 method: payment | carrots | admin 을 알려줌)
+const paidText = (method, cost) => method === 'carrots' ? `${fmtP(cost)}를 사용했어요 · 남은 ${fmtP(profile?.points)}`
+  : method === 'payment' ? `결제가 완료됐어요 · ${fmtP(PURCHASE_BONUS)} 적립!` : '관리자 계정이라 결제 없이 보여드려요.';
 // 차감 안내: 관리자는 차감되지 않음
-const spentText = (cost) => (profile?.is_admin ? '관리자 계정이라 포인트가 차감되지 않아요.' : `${fmtP(cost)} 사용 · 남은 포인트 ${fmtP(profile?.points)}`);
+const spentText = (cost) => (profile?.is_admin ? '관리자 계정이라 당근이 줄지 않아요.' : `${fmtP(cost)}를 사용했어요 · 남은 ${fmtP(profile?.points)}`);
 
 // ===== Initialize =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -76,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // 로그인 상태가 바뀔 때마다 프로필(포인트) 다시 불러오기
+  // 로그인 상태가 바뀔 때마다 프로필(당근) 다시 불러오기
   // (콜백 안에서 바로 Supabase를 호출하면 멈출 수 있어 다음 틱으로 미룸)
   sb.auth.onAuthStateChange((_event, s) => {
     session = s;
@@ -162,8 +166,8 @@ function payAndRun(product, action, paidAlready) {
   openSheet(`
     <div class="sheet-head">
       <div>
-        <h2 class="sheet-title" id="sheet-title">${PRODUCT_NAME[product]} 결제</h2>
-        <p class="sheet-sub">${fmtWon(PRICE)} · 결제하면 오늘의 운세 1회(${fmtP(PURCHASE_BONUS)}) 적립</p>
+        <h2 class="sheet-title" id="sheet-title">당근이 부족해요</h2>
+        <p class="sheet-sub">${PRODUCT_NAME[product]}는 ${fmtP(PRICES[product])}예요 · 지금 ${fmtP(profile?.points)}<br>${fmtWon(PRICES[product])}으로 결제하면 바로 볼 수 있고, ${fmtP(PURCHASE_BONUS)}를 적립해 드려요.</p>
       </div>
     </div>
     <form class="pay-form" onsubmit="return startPayment(event)">
@@ -171,7 +175,7 @@ function payAndRun(product, action, paidAlready) {
       <input type="tel" id="pay-phone" class="input" inputmode="numeric" autocomplete="tel" placeholder="01012345678" maxlength="13" required>
       <p class="field-help">결제사(페이앱)의 결제 확인에 쓰여요. 문자는 보내지 않고, 사이트에는 저장하지 않아요.</p>
       <button type="submit" class="btn-primary btn-submit" id="pay-submit">
-        <span class="btn-text">${fmtWon(PRICE)} 결제하기</span>
+        <span class="btn-text">${fmtWon(PRICES[product])} 결제하기</span>
         <span class="btn-loader" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
       <p class="pay-note">결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
@@ -208,9 +212,9 @@ async function startPayment(e) {
 function renderAuthState() {
   const loggedIn = Boolean(session && profile);
   const btn = document.getElementById('account-btn');
-  btn.textContent = loggedIn ? myBalance() : '로그인';
+  btn.innerHTML = loggedIn ? `${carrotIcon()}${myBalance()}` : '로그인';
   btn.classList.toggle('has-points', loggedIn);
-  btn.setAttribute('aria-label', loggedIn ? `내 계정, 보유 포인트 ${myBalance()}` : '로그인');
+  btn.setAttribute('aria-label', loggedIn ? `내 계정, 보유 당근 ${myBalance()}개` : '로그인');
   if (!loggedIn) document.getElementById('history').hidden = document.getElementById('j-history').hidden = true;
 }
 
@@ -242,20 +246,6 @@ function handleCallError(err, cost) {
   alert('요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.');
 }
 
-// ===== 광고: 화면에 보이는 슬롯만, 슬롯당 한 번씩 요청 =====
-// 숨겨진 섹션에서 요청하면 너비 0 오류가 나므로 섹션이 보일 때 호출
-function pushVisibleAds(root) {
-  root.querySelectorAll('ins.adsbygoogle:not([data-pushed])').forEach(ins => {
-    if (!ins.offsetWidth) return;
-    ins.dataset.pushed = '1';
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (err) {
-      console.log('AdSense notice:', err);
-    }
-  });
-}
-
 // ===== Section Navigation =====
 function showSection(sectionName) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -271,7 +261,6 @@ function showSection(sectionName) {
   });
 
   window.scrollTo({ top: 0 });
-  pushVisibleAds(target);
 }
 
 // ===== 로그인 =====
@@ -315,7 +304,7 @@ function openLoginSheet(reason) {
   openSheet(`
     <div class="sheet-head">
       <div>
-        <h2 class="sheet-title" id="sheet-title">간편 가입하고 1,000P 받기</h2>
+        <h2 class="sheet-title" id="sheet-title">간편 가입하고 당근 1,000개 받기</h2>
         <p class="sheet-sub">${reason || '사주풀이 · 오늘의 운세 · 전생풀이는 회원만 볼 수 있어요.'}</p>
       </div>
     </div>
@@ -329,14 +318,14 @@ function onAccountButton() {
   else openLoginSheet();
 }
 
-// ===== 내 계정 · 포인트 =====
+// ===== 내 계정 · 당근 =====
 const PROVIDER_LABEL = { kakao: '카카오', naver: '네이버', google: 'Google' };
-const REASON_LABEL = { signup: '가입 축하', admin: '관리자', referral: '추천 링크 방문', saju: '사주풀이', fortune: '오늘의 운세', jyotish: '전생풀이', jyotish_extra: '전생풀이 추가' };
+const REASON_LABEL = { signup: '가입 축하', admin: '관리자', purchase_bonus: '결제 적립', referral: '추천 링크 방문', saju: '사주풀이', fortune: '오늘의 운세', jyotish: '전생풀이', jyotish_extra: '전생풀이 추가' };
 
 function shareBlockHtml() {
   return `
     <div class="share-box">
-      <p class="share-title">친구에게 공유하고 포인트 받기</p>
+      <p class="share-title">친구에게 공유하고 당근 받기</p>
       <p class="share-desc">내 추천 링크를 연 사람 1명당 ${fmtP(REFERRAL_REWARD)} · 하루 최대 ${REFERRAL_DAILY_LIMIT}명</p>
       <button type="button" class="btn-primary" onclick="shareReferral()">추천 링크 공유하기</button>
     </div>
@@ -352,13 +341,12 @@ async function openAccountSheet() {
       </div>
     </div>
     <div class="balance">
-      <span class="balance-label">보유 포인트</span>
-      <strong class="balance-value">${myBalance()}</strong>
-      <span class="balance-note">포인트는 오늘의 운세(1회 ${fmtP(COST_FORTUNE)})에 쓰여요 · 사주풀이와 전생풀이는 건당 ${fmtWon(PRICE)}, 결제하면 ${fmtP(PURCHASE_BONUS)} 적립</span>
+      <span class="balance-label">보유 당근</span>
+      <strong class="balance-value">${carrotIcon()}${myBalance()}</strong>
+      <span class="balance-note">사주풀이 ${fmtP(PRICES.saju)} · 전생풀이 ${fmtP(PRICES.jyotish)} · 오늘의 운세 ${fmtP(COST_FORTUNE)}<br>당근이 부족하면 같은 금액(원)으로 결제할 수 있고, 결제하면 ${fmtP(PURCHASE_BONUS)}를 적립해 드려요.</span>
     </div>
     ${shareBlockHtml()}
-    <button type="button" class="btn-outline" disabled>포인트 충전 (준비 중)</button>
-    <h3 class="sheet-section-title">포인트 내역</h3>
+    <h3 class="sheet-section-title">당근 내역</h3>
     <ul class="ledger" id="ledger"><li class="ledger-empty">불러오는 중…</li></ul>
     <div class="account-actions">
       <button type="button" class="text-btn" onclick="signOut()">로그아웃</button>
@@ -373,7 +361,7 @@ async function openAccountSheet() {
   ledger.innerHTML = (data || []).map(l => `
     <li>
       <span>${REASON_LABEL[l.reason] || esc(l.reason)}<small>${new Date(l.created_at).toLocaleDateString('ko-KR')}</small></span>
-      <strong class="${l.amount > 0 ? 'plus' : 'minus'}">${l.amount > 0 ? '+' : ''}${l.amount.toLocaleString('ko-KR')}P</strong>
+      <strong class="${l.amount > 0 ? 'plus' : 'minus'}">${l.amount > 0 ? '+' : ''}${l.amount.toLocaleString('ko-KR')}</strong>
     </li>
   `).join('') || '<li class="ledger-empty">아직 내역이 없어요.</li>';
 }
@@ -382,12 +370,11 @@ function openPointsSheet(cost) {
   openSheet(`
     <div class="sheet-head">
       <div>
-        <h2 class="sheet-title" id="sheet-title">포인트가 부족해요</h2>
-        <p class="sheet-sub">필요 ${fmtP(cost)} · 보유 ${fmtP(profile?.points)}</p>
+        <h2 class="sheet-title" id="sheet-title">당근이 부족해요</h2>
+        <p class="sheet-sub">필요 ${fmtP(cost)} · 지금 ${fmtP(profile?.points)}</p>
       </div>
     </div>
     ${shareBlockHtml()}
-    <button type="button" class="btn-outline" disabled>포인트 충전 (준비 중)</button>
   `);
 }
 
@@ -416,7 +403,7 @@ async function signOut() {
 }
 
 async function deleteAccount() {
-  if (!confirm('탈퇴하면 포인트와 풀이 기록이 모두 삭제되고 되돌릴 수 없습니다. 탈퇴할까요?')) return;
+  if (!confirm('탈퇴하면 당근과 풀이 기록이 모두 삭제되고 되돌릴 수 없습니다. 탈퇴할까요?')) return;
   try {
     await callFn('delete-account', {});
     await sb.auth.signOut();
@@ -534,7 +521,7 @@ function runSaju(body, paymentId) {
     setBalance(data.balance);
     showReading(data.reading);
     loadHistory();
-    showToast(data.charged ? paidText() : '이미 본 사주라 무료로 다시 보여드려요.');
+    showToast(data.charged ? paidText(data.method, PRICES.saju) : '이미 본 사주라 무료로 다시 보여드려요.');
   }).catch(err => err.code === 'PAYMENT_REQUIRED'
     ? payAndRun('saju', { type: 'saju', body }, paymentId)
     : handleCallError(err))
@@ -608,7 +595,6 @@ function renderSajuResult(result, interpretation, name, birthText, timeText, gen
   renderInterpretationAccordion(interpretation);
 
   window.scrollTo({ top: 0 });
-  pushVisibleAds(resultEl);
 }
 
 function renderInterpretationAccordion(interpretationSections) {
@@ -627,15 +613,6 @@ function renderInterpretationAccordion(interpretationSections) {
         <div class="acc-body">${sec.content}</div>
       </div>
     `;
-
-    // [광고] 3번과 4번 풀이 사이 인피드
-    if (idx === 2) {
-      html += `
-        <div class="ad-container">
-          <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-3087515825675332" data-ad-slot="6639512269" data-ad-format="auto" data-full-width-responsive="true"></ins>
-        </div>
-      `;
-    }
   });
 
   container.innerHTML = html;
@@ -720,9 +697,7 @@ function initFortuneSection() {
   const t = kstParts();
   const weekday = ['일', '월', '화', '수', '목', '금', '토'][new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay()];
   document.getElementById('fortune-date').textContent = `${t.year}년 ${t.month}월 ${t.day}일 ${weekday}요일 · 내 띠를 눌러보세요`;
-  document.getElementById('teaser-date').textContent = `${t.month}월 ${t.day}일 운세 예시 보기`;
-  // 홈 카드에는 올해의 띠 한자
-  document.getElementById('teaser-hanja').textContent = 지지한자[((t.year - 4) % 12 + 12) % 12];
+  document.getElementById('teaser-date').textContent = `${t.month}월 ${t.day}일 오늘의 한마디`;
 
   document.getElementById('zodiac-grid').innerHTML = 띠동물.map((animal, idx) => {
     const yearText = getBirthYearsForZodiac(idx).slice(0, 4).reverse().map(y => String(y).slice(2)).join('·');
@@ -977,7 +952,7 @@ function runJyotish(body, paymentId) {
     setBalance(data.balance);
     showJyotishReading(data.reading);
     loadJyotishHistory();
-    showToast(data.charged ? paidText() : '이미 본 풀이라 무료로 다시 보여드려요.');
+    showToast(data.charged ? paidText(data.method, PRICES.jyotish) : '이미 본 풀이라 무료로 다시 보여드려요.');
   }).catch(err => err.code === 'PAYMENT_REQUIRED'
     ? payAndRun('jyotish', { type: 'jyotish', body }, paymentId)
     : jyotishError(err))
@@ -1024,7 +999,7 @@ function unlockJyotishExtra(paymentId) {
     currentJyotish.extra = data.extra;
     const firstNew = renderJyotishSections(currentJyotish);
     firstNew?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    showToast(data.charged ? paidText() : '이미 연 풀이라 무료로 보여드려요.');
+    showToast(data.charged ? paidText(data.method, PRICES.jyotish_extra) : '이미 연 풀이라 무료로 보여드려요.');
   }).catch(err => {
     if (err.code === 'PAYMENT_REQUIRED') payAndRun('jyotish_extra', { type: 'jyotish_extra', readingId }, paymentId);
     else jyotishError(err);
@@ -1041,8 +1016,21 @@ function toggleIntro(btn) {
     box.append(document.querySelector(`#${box.dataset.from} .sample`).cloneNode(true));
   }
   const open = btn.getAttribute('aria-expanded') !== 'true';
+  // 한 번에 하나만 펼침
+  document.querySelectorAll('.home-card[aria-expanded="true"]').forEach(other => {
+    if (other === btn) return;
+    other.setAttribute('aria-expanded', 'false');
+    document.getElementById(other.getAttribute('aria-controls')).hidden = true;
+  });
   btn.setAttribute('aria-expanded', open);
   box.hidden = !open;
+  if (open) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 친구 초대 카드: 로그인했으면 추천 링크 공유, 아니면 가입 안내
+function inviteFriends() {
+  if (!profile) return openLoginSheet('가입하면 나만의 추천 링크가 생겨요. 친구가 링크를 열 때마다 당근 100개!');
+  shareReferral();
 }
 
 // 예시 카드의 버튼: 입력란(또는 띠 목록)으로 이동
@@ -1112,10 +1100,10 @@ function renderJyotishSections(record) {
     <p class="locked-desc">전생 이야기와 이어지는 이번 생의 모습을 풀어드려요.</p>
     <ul class="locked-list">${JYOTISH_EXTRA.map(([, title], i) => `<li><span class="acc-num">${String(JYOTISH_BASE.length + i + 1).padStart(2, '0')}</span>${title}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></li>`).join('')}</ul>
     <button type="button" class="btn-primary btn-submit" id="j-unlock" onclick="unlockJyotishExtra()">
-      <span class="btn-text">나머지 8가지 풀이 열기 · ${fmtWon(PRICE)}</span>
+      <span class="btn-text">나머지 8가지 풀이 열기 · ${fmtP(PRICES.jyotish_extra)}</span>
       <span class="btn-loader" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
-    <p class="pay-note">결제하면 오늘의 운세 1회(100P)를 적립해 드려요.<br>결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
+    <p class="pay-note">당근이 부족하면 ${fmtWon(PRICES.jyotish_extra)}으로 결제할 수 있어요 (결제하면 당근 100개 적립).<br>결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
     <p class="trust" id="j-unlock-wait" hidden>AI가 이번 생 풀이를 쓰는 중이에요. 1분 정도 걸려요. 창을 닫지 말아주세요. <strong class="wait-pct" id="j-unlock-pct">0%</strong></p>`;
   box.replaceChildren(locked);
   return null;
@@ -1154,7 +1142,6 @@ function showJyotishReading(record) {
   renderJyotishSections(record);
 
   window.scrollTo({ top: 0 });
-  pushVisibleAds(resultEl);
 }
 
 async function loadJyotishHistory() {
