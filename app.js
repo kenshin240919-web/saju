@@ -1095,11 +1095,14 @@ function jyotishItem(num, title, text, open) {
 function renderJyotishSections(record) {
   const all = { ...record.result.reading, ...(record.extra || {}) };
   const unlocked = JYOTISH_EXTRA.every(([key]) => all[key]);
-  const items = JYOTISH_BASE.map(([key, title], i) => jyotishItem(i + 1, title, all[key], i === 0));
-  const box = document.getElementById('j-sections');
+  // 기본 3가지는 AI가 내용에 맞게 지은 제목을 씀 (예전 풀이에는 없으니 기본 제목)
+  const items = JYOTISH_BASE.map(([key, title], i) => jyotishItem(i + 1, all[`${key}_title`] || title, all[key], i === 0));
+  // 기본 3가지는 위, 추가 8가지(또는 잠긴 목록)는 출생 차트 아래
+  document.getElementById('j-sections').replaceChildren(...items);
+  const box = document.getElementById('j-extra');
   if (unlocked) {
     const extra = JYOTISH_EXTRA.map(([key, title], i) => jyotishItem(JYOTISH_BASE.length + i + 1, title, all[key], i === 0));
-    box.replaceChildren(...items, ...extra);
+    box.replaceChildren(...extra);
     return extra[0];
   }
   const locked = document.createElement('div');
@@ -1114,7 +1117,7 @@ function renderJyotishSections(record) {
     </button>
     <p class="pay-note">결제하면 오늘의 운세 1회(100P)를 적립해 드려요.<br>결제 후 바로 제공되는 디지털 콘텐츠로, 풀이를 연 뒤에는 청약철회가 제한돼요. <a href="refund.html">환불 정책</a></p>
     <p class="trust" id="j-unlock-wait" hidden>AI가 이번 생 풀이를 쓰는 중이에요. 1분 정도 걸려요. 창을 닫지 말아주세요. <strong class="wait-pct" id="j-unlock-pct">0%</strong></p>`;
-  box.replaceChildren(...items, locked);
+  box.replaceChildren(locked);
   return null;
 }
 
@@ -1138,13 +1141,7 @@ function showJyotishReading(record) {
     return chip;
   }));
 
-  const moon = chart.planets.find(p => p.name === 'Moon');
-  document.getElementById('j-chart-key').innerHTML = [
-    ['라그나(상승궁)', RASHI_KO[chart.lagna.sign]],
-    ['달 별자리', RASHI_KO[moon.sign]],
-    ['달의 나크샤트라', NAKSHATRA_KO[moon.nakshatra]],
-    ['지금의 대운', `${PLANET_KO[chart.currentDasha.lord]} 다샤`],
-  ].map(([k, v]) => `<div class="chart-key-item"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('');
+  renderChartGuide(chart);
   document.getElementById('j-planets').innerHTML = chart.planets.map(p => `
     <tr>
       <th scope="row">${PLANET_KO[p.name]}</th>
@@ -1178,6 +1175,53 @@ async function openSavedJyotish(id) {
   if (error) return alert('기록을 불러오지 못했습니다.');
   showJyotishReading(data);
 }
+
+// 출생 차트를 처음 보는 사람도 읽을 수 있게: 핵심 4가지 · 12개의 인생 방 · 행성 뜻 (원래 표는 접어서 아래에)
+function renderChartGuide(chart) {
+  const moon = chart.planets.find(p => p.name === 'Moon');
+  const dashaEnd = String(chart.currentDasha.end).slice(0, 4);
+  document.getElementById('j-chart-key').innerHTML = [
+    ['남에게 보이는 나', '라그나(상승궁)', RASHI_KO[chart.lagna.sign], SIGN_TRAIT[chart.lagna.sign]],
+    ['나의 속마음', '달 별자리', RASHI_KO[moon.sign], SIGN_TRAIT[moon.sign]],
+    ['타고난 마음의 별', '달의 나크샤트라', NAKSHATRA_KO[moon.nakshatra], '27개 별 무리 중 태어날 때 달이 있던 곳'],
+    ['지금 인생을 이끄는 별', '대운(다샤)', PLANET_KO[chart.currentDasha.lord], `${PLANET_MEANING[chart.currentDasha.lord]}의 시기 · ${dashaEnd}년까지`],
+  ].map(([title, term, value, desc]) => `
+    <div class="chart-key-item">
+      <span>${title} <small>${term}</small></span>
+      <strong>${value}</strong>
+      <em>${desc}</em>
+    </div>`).join('');
+
+  // 홀사인: 1번 방 = 라그나 별자리, 이후 별자리 순서대로
+  document.getElementById('j-houses').innerHTML = HOUSE_MEANING.map((meaning, i) => {
+    const house = i + 1;
+    const inside = chart.planets.filter(p => p.house === house);
+    const badge = house === 1 ? '<b class="house-badge">나의 시작</b>' : house === 12 ? '<b class="house-badge past">전생 단서</b>' : '';
+    return `
+      <div class="house${inside.length ? '' : ' empty'}${house === 12 ? ' past' : ''}">
+        <div class="house-top"><span class="house-num">${house}</span>${badge}</div>
+        <strong class="house-name">${meaning}</strong>
+        <span class="house-sign">${RASHI_KO[(chart.lagna.sign + i) % 12]}</span>
+        <div class="house-planets">${inside.map(p => `<span class="pchip${p.name === 'Ketu' ? ' past' : ''}">${PLANET_KO[p.name]}</span>`).join('')}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('j-guide').innerHTML = chart.planets.map(p => `
+    <li>
+      <span class="pchip${p.name === 'Ketu' ? ' past' : ''}">${PLANET_KO[p.name]}</span>
+      <span><strong>${PLANET_MEANING[p.name]}</strong> · ${p.house}번 방(${HOUSE_MEANING[p.house - 1]})에 있어요
+        <small>${RASHI_KO[p.sign]}${p.dignity ? ` · ${DIGNITY_KO[p.dignity] || esc(p.dignity)}` : ''}</small></span>
+    </li>`).join('');
+}
+
+const HOUSE_MEANING = ['나 자신·외모', '재물·가족', '형제·소통', '집·어머니', '연애·자녀', '일·건강', '결혼·동업', '변화·비밀', '행운·스승', '직업·명예', '수입·친구', '전생·내면'];
+const PLANET_MEANING = {
+  Sun: '나의 의지·아버지', Moon: '마음·감정', Mars: '용기·추진력', Mercury: '지혜·말솜씨', Jupiter: '행운·지혜',
+  Venus: '사랑·아름다움', Saturn: '책임·인내', Rahu: '이번 생의 욕망', Ketu: '전생에 익힌 재능',
+};
+const SIGN_TRAIT = ['앞장서는 개척자', '차분하고 꾸준한 사람', '재치 있고 호기심 많은 사람', '따뜻하게 보살피는 사람', '당당하게 빛나는 사람', '섬세하고 꼼꼼한 사람',
+  '조화롭고 다정한 사람', '깊고 강렬한 사람', '자유롭고 낙천적인 사람', '성실하고 현실적인 사람', '독창적이고 남다른 사람', '감성적이고 직관적인 사람'];
+const DIGNITY_KO = { 고양: '고양 – 가장 힘이 센 자리', 본궁: '본궁 – 자기 집이라 편안한 자리', 쇠약: '쇠약 – 힘이 약해지는 자리' };
 
 // 차트 표시용 이름 (서버 jyotish.ts와 같은 순서)
 const RASHI_KO = ['양자리', '황소자리', '쌍둥이자리', '게자리', '사자자리', '처녀자리', '천칭자리', '전갈자리', '궁수자리', '염소자리', '물병자리', '물고기자리'];

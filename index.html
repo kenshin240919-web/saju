@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=20261008">
+  <link rel="stylesheet" href="index.css?v=20261011">
 </head>
 <body>
   <!-- 상단 헤더: 로고 -->
@@ -380,18 +380,30 @@
           <div class="chips" id="j-result-meta"></div>
         </section>
 
-        <section class="card">
-          <h3 class="card-title">나의 출생 차트</h3>
-          <div class="chart-key" id="j-chart-key"></div>
-          <table class="planet-table">
-            <thead><tr><th scope="col">행성</th><th scope="col">별자리</th><th scope="col">하우스</th><th scope="col">나크샤트라</th></tr></thead>
-            <tbody id="j-planets"></tbody>
-          </table>
-        </section>
-
         <section>
           <h3 class="block-title">전생풀이</h3>
           <div class="accordion" id="j-sections"></div>
+        </section>
+
+        <section class="card">
+          <h3 class="card-title">나의 출생 차트</h3>
+          <p class="chart-intro">태어난 순간의 하늘을 <strong>12개의 인생 방</strong>으로 나눈 지도예요. 행성이 들어 있는 방의 일이 인생에서 크게 작용해요.</p>
+          <div class="chart-key" id="j-chart-key"></div>
+          <h4 class="chart-sub">12개의 인생 방</h4>
+          <div class="house-grid" id="j-houses"></div>
+          <h4 class="chart-sub">행성이 뜻하는 것</h4>
+          <ul class="planet-guide" id="j-guide"></ul>
+          <details class="chart-detail">
+            <summary>전문가용 표 보기</summary>
+            <table class="planet-table">
+              <thead><tr><th scope="col">행성</th><th scope="col">별자리</th><th scope="col">하우스</th><th scope="col">나크샤트라</th></tr></thead>
+              <tbody id="j-planets"></tbody>
+            </table>
+          </details>
+        </section>
+
+        <section>
+          <div class="accordion" id="j-extra"></div>
         </section>
       </div>
     </section>
@@ -437,6 +449,6 @@
   <script src="lib/korean-lunar-calendar.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20261008"></script>
+  <script src="app.js?v=20261011"></script>
 </body>
 </html>

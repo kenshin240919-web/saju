@@ -798,8 +798,168 @@ button {
 }
 
 .chart-key-item strong {
+  margin-top: 2px;
   font-family: var(--serif);
-  font-size: 16px;
+  font-size: 17px;
+}
+
+.chart-key-item span small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.chart-key-item em {
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--sub);
+}
+
+.chart-intro {
+  margin: 6px 0 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--sub);
+}
+
+.chart-sub {
+  margin: 4px 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 12개의 인생 방 */
+.house-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.house {
+  min-height: 92px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.house.empty {
+  background: transparent;
+  border-color: var(--line);
+}
+
+.house.empty .house-name,
+.house.empty .house-sign {
+  color: var(--muted);
+}
+
+.house.past {
+  border-color: var(--seal);
+  background: var(--seal-tint);
+}
+
+.house-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.house-num {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--seal);
+}
+
+.house-badge {
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sub);
+  background: var(--ground);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.house-badge.past {
+  color: #FFFFFF;
+  background: var(--seal);
+}
+
+.house-name {
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.house-sign {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.house-planets {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.pchip {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #FFE45C;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pchip.past {
+  color: #FFFFFF;
+  background: var(--seal);
+}
+
+/* 행성이 뜻하는 것 */
+.planet-guide {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.planet-guide li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.planet-guide .pchip {
+  min-width: 44px;
+  text-align: center;
+}
+
+.planet-guide small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chart-detail summary {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
 }
 
 .planet-table {
